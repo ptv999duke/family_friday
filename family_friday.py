@@ -1,38 +1,51 @@
 import random
+import queue
 
 MAX_GROUP_SIZE = 5
 MIN_GROUP_SIZE = 3
 
-def arrange_family_friday(people):
+# Map<tea_num, list(people)>
+def arrange_family_friday(teams):
 
     # num_of_groups = len(people)/5
     # remainder = len(people) % 5
     # if remainder < MIN_GROUP_SIZE:
         # breakup(last_group_of_5) -> 3, 2 -> 3, 2 + 1 -> 3, 3
-    if people is None:
+    if teams is None:
         raise ValueError("Cannot pass null people group")
-    if len(people) < 3:
-        return [people]
 
     final_grouping = []
-
     current_group = []
-    for i in range(len(people) - 1, -1, -1):
-        temp_group = None
-        curr_person_index = random.randint(0, i)
-        curr_person = people[curr_person_index]
-        if len(current_group) >= MAX_GROUP_SIZE:
-            temp_group = current_group
-            current_group = []
+
+    team_p_q = queue.PriorityQueue()
+    for team_num in teams:
+        team_p_q.put((len(teams[team_num]), team_num))
+
+    temp_team_holdings = []
+    while team_p_q.qsize() > 0:
+        team_info = team_p_q.get()
+        team_available_count = team_info[0]
+        team_num = team_info[1]
+        curr_person_index = random.randint(0, team_available_count - 1)
+        team_members = teams[team_num]
+        curr_person = team_members[curr_person_index]
 
         current_group.append(curr_person)
-        people[curr_person_index] = people[i]
-        people[i] = curr_person
+        teams[curr_person_index] = teams[team_available_count - 1]
+        teams[team_available_count - 1] = curr_person_index
+        new_team_count = team_available_count - 1
+        if new_team_count <= 0:
+            continue
 
-        if temp_group is not None:
-            final_grouping.append(temp_group)
-        if i == 0:
+        temp_team_holdings.append((new_team_count, team_num))
+        if team_p_q.qsize() <= 0 and len(temp_team_holdings) > 0:
+            for held_team_info in temp_team_holdings:
+                team_p_q.put(held_team_info)
+            temp_team_holdings.clear()
+
+        if len(current_group) >= MAX_GROUP_SIZE or team_p_q.qsize() <= 0 and len(temp_team_holdings) <= 0:
             final_grouping.append(current_group)
+            current_group = []
 
     if len(final_grouping[-1]) < MIN_GROUP_SIZE:
         group_to_add_to = final_grouping[-1]
@@ -46,3 +59,11 @@ def arrange_family_friday(people):
                 break
 
     return final_grouping
+
+print(arrange_family_friday(
+    {
+        0: [1, 2, 3, 4],
+        1: [5, 6, 7],
+        2: [8]
+    }
+))
